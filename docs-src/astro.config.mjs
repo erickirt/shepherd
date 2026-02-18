@@ -14,9 +14,18 @@ export default defineConfig({
         src: './src/assets/Shepherd-Lamb.svg'
       },
       favicon: '/favicon.ico',
-      social: {
-        github: 'https://github.com/shipshapecode/shepherd'
-      },
+      social: [
+        {
+          icon: 'github',
+          label: 'GitHub',
+          href: 'https://github.com/shipshapecode/shepherd'
+        },
+        {
+          icon: 'discord',
+          label: 'Discord',
+          href: 'https://discord.gg/EGcDW5NSud'
+        }
+      ],
       components: {
         // Override the default `Head` component.
         Head: './src/components/HeadWithPosthog.astro'
