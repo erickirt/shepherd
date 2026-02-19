@@ -719,5 +719,71 @@ describe('components/ShepherdModal', () => {
 
       rafSpy.mockRestore();
     });
+
+    it('handles cross-origin iframe SecurityError gracefully', () => {
+      // Regression test for https://github.com/shipshapecode/shepherd/issues/3087
+      // When Shepherd is loaded in a nested cross-origin iframe, accessing
+      // window.frameElement throws a SecurityError due to Same-Origin Policy.
+      // This test ensures the error is caught and handled gracefully.
+      const modal = createShepherdModal(container);
+      const rafSpy = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(() => 1);
+
+      const targetEl = document.createElement('div');
+      container.appendChild(targetEl);
+
+      // Simulate a cross-origin iframe by making frameElement access throw SecurityError
+      const fakeChildWindow = {
+        get frameElement() {
+          // Simulate browser's SecurityError when accessing cross-origin frameElement
+          const error = new Error(
+            'Blocked a frame with origin "https://example.com" from accessing a cross-origin frame.'
+          );
+          error.name = 'SecurityError';
+          throw error;
+        },
+        parent: window
+      };
+
+      const origDescriptor = Object.getOwnPropertyDescriptor(
+        targetEl.ownerDocument,
+        'defaultView'
+      );
+      Object.defineProperty(targetEl.ownerDocument, 'defaultView', {
+        value: fakeChildWindow,
+        configurable: true
+      });
+
+      const tour = new Tour({ useModalOverlay: true });
+      const step = new Step(tour, {
+        attachTo: { element: targetEl, on: 'bottom' }
+      });
+      step._resolveAttachToOptions();
+      step.target = targetEl;
+
+      // This should NOT throw an error, even though frameElement access throws SecurityError
+      expect(() => {
+        modal.setupForStep(step);
+      }).not.toThrow();
+
+      // Restore defaultView before any assertions
+      if (origDescriptor) {
+        Object.defineProperty(
+          targetEl.ownerDocument,
+          'defaultView',
+          origDescriptor
+        );
+      } else {
+        Object.defineProperty(targetEl.ownerDocument, 'defaultView', {
+          value: window,
+          configurable: true
+        });
+      }
+
+      expect(modal.getElement()).toHaveClass('shepherd-modal-is-visible');
+
+      rafSpy.mockRestore();
+    });
   });
 });
