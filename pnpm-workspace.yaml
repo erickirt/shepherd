@@ -6,4 +6,6 @@ packages:
 
 onlyBuiltDependencies:
   - cypress
+  - esbuild
+  - sharp
   - svelte-preprocess
